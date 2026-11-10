@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Get ready for Seita's birthday party - 全景探索版</title>
+  <style>
+    :root {
+      --primary-lavender: #c8b6ff;
+      --deep-lavender: #7251b5;
+      --bg-dark: #1e1b2e;
+      --accent-pink: #ffc6ff;
+      --gold: #ffd166;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-dark);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      max-width: 450px;
+      max-height: 900px;
+      background: #f7f2ff;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(114, 81, 181, 0.4);
+    }
+
+    /* Header & Progress Bar */
+    header {
+      padding: 14px 15px;
+      background: linear-gradient(135deg, #e6e6fa 0%, #d8bbff 100%);
+      text-align: center;
+      border-bottom: 2px solid var(--primary-lavender);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      z-index: 10;
+    }
+
+    h1 {
+      font-size: 16px;
+      color: var(--deep-lavender);
+      margin-bottom: 4px;
+      font-weight: 800;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .status {
+      font-size: 12px;
+      font-weight: 700;
+      color: #4a3e6d;
+    }
+
+    .progress-track {
+      width: 100px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid var(--primary-lavender);
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #b820e6, #7251b5);
+      transition: width 0.3s ease;
+    }
+
+    /* 房間視窗區域 */
+    #room-viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+    }
+    #room-viewport:active {
+      cursor: grabbing;
+    }
+
+    /* 房間真實全景背景圖 (保持原圖片 1024x472 比例適配高爾特) */
+    #room-scene {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1300px; /* 擴展畫布寬度，讓左右滑動體感極佳 */
+      height: 100%;
+      background-image: url('./bg_room.jpg'); /* 請將上傳的圖片命名為 bg_room.jpg 並放在同資料夾下 */
+      background-size: cover;
+      background-position: center;
+      transform: translateX(0px);
+      transition: transform 0.05s ease-out;
+    }
+
+    /* 隱形門點擊區域 (完美疊加在圖片中間的大門上) */
+    #door-click-area {
+      position: absolute;
+      top: 18%;
+      left: 672px; /* 精準對齊圖片中的 PARTY 大門位置 */
+      width: 160px;
+      height: 370px;
+      cursor: pointer;
+      z-index: 2;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+    #door-click-area.ready {
+      box-shadow: 0 0 30px var(--accent-pink), inset 0 0 20px rgba(255,255,255,0.8);
+      animation: pulse 1.5s infinite;
+    }
+
+    /* 互動尋寶道具 */
+    .interactive-item {
+      position: absolute;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.25));
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 3;
+    }
+    .interactive-item:active { transform: scale(0.85); }
+
+    /* 提示滑動標籤 */
+    #swipe-hint {
+      position: absolute;
+      bottom: 8px;
+      width: 100%;
+      text-align: center;
+      font-size: 11px;
+      color: #8c78b5;
+      pointer-events: none;
+      z-index: 5;
+      background: rgba(255,255,255,0.65);
+      padding: 3px 0;
+    }
+
+    /* 物品欄 */
+    #inventory {
+      height: 85px;
+      background: #ffffff;
+      border-top: 2.5px solid var(--primary-lavender);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 8px;
+      z-index: 10;
+    }
+    .slot {
+      width: 42px;
+      height: 42px;
+      border: 2px dashed #c8b6ff;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      background: #faf7ff;
+      opacity: 0.3;
+      transition: all 0.3s;
+    }
+    .slot.collected {
+      opacity: 1;
+      border: 2px solid var(--deep-lavender);
+      background: #f0e6ff;
+      box-shadow: 0 2px 8px rgba(114, 81, 181, 0.25);
+      animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* 結尾動畫彈窗 */
+    #ending-modal {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, rgba(240, 230, 255, 0.97), rgba(255, 230, 245, 0.97));
+      z-index: 30;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 25px;
+    }
+    .celebrate-title {
+      font-size: 26px;
+      color: var(--deep-lavender);
+      margin: 15px 0 10px;
+      font-weight: 800;
+    }
+
+    .particle {
+      position: absolute;
+      pointer-events: none;
+      animation: floatUp 1s ease-out forwards;
+      z-index: 20;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.3); }
+      100% { transform: scale(1); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 0.3; }
+    }
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <header>
+    <h1>Get ready for Seita's birthday party</h1>
+    <div class="status-bar">
+      <div class="status" id="status-text">搜尋物品: 0 / 7</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 全景房間視窗 (支援滑動拖曳) -->
+  <div id="room-viewport">
+    <div id="room-scene">
+      
+      <!-- 門口點擊觸發區域 (對齊圖片中 PARTY 標籤大門) -->
+      <div id="door-click-area" onclick="tryOpenDoor()"></div>
+
+      <!-- 7 樣尋寶物品（精準佈置於圖片中對應家具位置） -->
+      <!-- 1. 信件：位於左側電腦桌上 -->
+      <div class="interactive-item" id="item-letter" style="bottom: 30%; left: 160px;" onclick="collectItem('letter', '✉️', this, event)" title="告白信件">✉️</div>
+      
+      <!-- 2. 派對帽：位於左側上方架子處 -->
+      <div class="interactive-item" id="item-hat" style="top: 15%; left: 320px;" onclick="collectItem('hat', '🥳', this, event)" title="派對帽">🥳</div>
+      
+      <!-- 3. 禮物盒：位於中間衣櫃下方的收納盒旁 -->
+      <div class="interactive-item" id="item-gift" style="bottom: 12%; left: 580px;" onclick="collectItem('gift', '🎁', this, event)" title="禮物盒">🎁</div>
+
+      <!-- 4. 應援棒：位於右側書架格中 -->
+      <div class="interactive-item" id="item-lightstick" style="top: 42%; left: 910px;" onclick="collectItem('lightstick', '🪄', this, event)" title="NEXZ 應援棒">🪄</div>
+      
+      <!-- 5
